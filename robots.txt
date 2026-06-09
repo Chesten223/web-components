@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://web-components.pages.dev/sitemap.xml

@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web Components Playground — Custom Elements Editor</title>
+<meta name="description" content="Interactive Web Components playground with live preview. Learn and build Custom Elements, Shadow DOM, Templates &amp; Slots, and HTML Imports with preset examples.">
+<meta property="og:title" content="Web Components Playground — Custom Elements Editor">
+<meta property="og:description" content="Interactive Web Components playground with live code editor and Shadow DOM preview. Build Custom Elements with preset templates.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://web-components.pages.dev">
+<meta property="og:image" content="https://web-components.pages.dev/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Web Components Playground — Custom Elements Editor">
+<meta name="twitter:description" content="Interactive Web Components playground with live code editor and Shadow DOM preview.">
+<link rel="canonical" href="https://web-components.pages.dev">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Web Components Playground",
+  "description": "Interactive Web Components playground with live code editor and Shadow DOM preview.",
+  "url": "https://web-components.pages.dev",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Any",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "browserRequirements": "Requires JavaScript. Requires HTML5."
+}
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#e6edf3;--text2:#8b949e;--accent:#58a6ff;--green:#3fb950;--orange:#d29922;--red:#f85149;--purple:#bc8cff;--cyan:#39d353;--font:'Segoe UI',system-ui,-apple-system,sans-serif;--mono:'Cascadia Code',Fira Code,Consolas,monospace}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.6;min-height:100vh}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+::selection{background:rgba(88,166,255,.3)}
+
+/* Header */
+.site-header{background:var(--surface);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.site-header h1{font-size:1.25rem;font-weight:700;display:flex;align-items:center;gap:.5rem}
+.site-header h1 span{color:var(--accent)}
+.header-links{display:flex;gap:1rem;font-size:.875rem}
+
+/* Layout */
+.container{max-width:1400px;margin:0 auto;padding:0 1.5rem}
+.playground{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1.5rem;height:calc(100vh - 180px);min-height:500px}
+@media(max-width:900px){.playground{grid-template-columns:1fr;height:auto}}
+
+/* Panels */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;overflow:hidden}
+.panel-header{padding:.6rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:.8rem;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.panel-header .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.panel-header .dot.green{background:var(--green)}.panel-header .dot.yellow{background:var(--orange)}.panel-header .dot.red{background:var(--red)}
+
+/* Editor */
+.editor-wrap{flex:1;position:relative;display:flex;overflow:hidden}
+.line-numbers{padding:1rem .5rem 1rem .75rem;text-align:right;color:var(--text2);font-family:var(--mono);font-size:.8rem;line-height:1.6;user-select:none;overflow:hidden;min-width:40px;background:rgba(0,0,0,.15);border-right:1px solid var(--border)}
+#editor{flex:1;padding:1rem;font-family:var(--mono);font-size:.8rem;line-height:1.6;background:transparent;color:var(--text);border:none;outline:none;resize:none;tab-size:2;white-space:pre;overflow:auto}
+#editor::selection{background:rgba(88,166,255,.3)}
+
+/* Highlighted overlay */
+.highlight-overlay{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;padding:1rem;font-family:var(--mono);font-size:.8rem;line-height:1.6;white-space:pre;overflow:auto;color:transparent;z-index:1}
+.highlight-overlay .kw{color:#ff7b72}.highlight-overlay .str{color:#a5d6ff}.highlight-overlay .fn{color:#d2a8ff}
+.highlight-overlay .cm{color:#8b949e;font-style:italic}.highlight-overlay .tag{color:#7ee787}.highlight-overlay .attr{color:#79c0ff}
+.highlight-overlay .num{color:#79c0ff}
+
+/* Preview */
+#preview{flex:1;border:none;background:#fff;border-radius:0 0 8px 8px}
+
+/* Toolbar */
+.toolbar{display:flex;gap:.5rem;padding:.75rem 1.5rem;flex-wrap:wrap;align-items:center}
+.toolbar select,.toolbar button{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.4rem .75rem;font-size:.8rem;cursor:pointer;font-family:var(--font);transition:border-color .2s}
+.toolbar select:hover,.toolbar button:hover{border-color:var(--accent)}
+.toolbar button.primary{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600}
+.toolbar button.primary:hover{opacity:.9}
+.section-tabs{display:flex;gap:.25rem;padding:0 1.5rem;margin-top:1rem}
+.section-tab{padding:.4rem 1rem;border-radius:6px 6px 0 0;font-size:.75rem;font-weight:600;cursor:pointer;border:1px solid transparent;color:var(--text2);background:transparent;transition:all .2s}
+.section-tab:hover{color:var(--text)}
+.section-tab.active{background:var(--surface);color:var(--accent);border-color:var(--border);border-bottom-color:var(--surface)}
+
+/* Features */
+.features{padding:4rem 0}
+.features h2{text-align:center;font-size:2rem;margin-bottom:2.5rem}
+.features h2 span{color:var(--accent)}
+.feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem}
+.feature-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.75rem;transition:border-color .3s,transform .3s}
+.feature-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.feature-card .icon{font-size:2rem;margin-bottom:.75rem}
+.feature-card h3{font-size:1.1rem;margin-bottom:.5rem;color:var(--accent)}
+.feature-card p{color:var(--text2);font-size:.9rem;line-height:1.6}
+
+/* FAQ */
+.faq{padding:4rem 0}
+.faq h2{text-align:center;font-size:2rem;margin-bottom:2.5rem}
+.faq h2 span{color:var(--accent)}
+.faq-list{max-width:720px;margin:0 auto}
+.faq-item{border:1px solid var(--border);border-radius:8px;margin-bottom:.75rem;overflow:hidden}
+.faq-q{padding:1rem 1.25rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:.95rem;user-select:none;transition:background .2s}
+.faq-q:hover{background:rgba(88,166,255,.05)}
+.faq-q .arrow{transition:transform .3s;color:var(--text2);font-size:.8rem}
+.faq-item.open .faq-q .arrow{transform:rotate(180deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.faq-item.open .faq-a{max-height:300px}
+.faq-a p{padding:0 1.25rem 1rem;color:var(--text2);font-size:.9rem;line-height:1.7}
+
+/* Email Widget */
+.email-widget{padding:3rem 0}
+.email-box{max-width:500px;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem}
+.email-box h3{font-size:1.25rem;margin-bottom:.5rem}
+.email-box p{color:var(--text2);font-size:.9rem;margin-bottom:1.25rem}
+.email-form{display:flex;gap:.5rem}
+.email-form input{flex:1;padding:.6rem .75rem;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:.875rem;outline:none}
+.email-form input:focus{border-color:var(--accent)}
+.email-form button{padding:.6rem 1.25rem;border-radius:6px;border:none;background:var(--accent);color:var(--bg);font-weight:600;font-size:.875rem;cursor:pointer;white-space:nowrap}
+.email-form button:hover{opacity:.9}
+.email-msg{margin-top:.75rem;font-size:.8rem;color:var(--green);display:none}
+
+/* Cross Links */
+.cross-links{padding:2rem 0;text-align:center;border-top:1px solid var(--border);margin-top:2rem}
+.cross-links h3{font-size:1rem;color:var(--text2);margin-bottom:1rem}
+.cross-links a{display:inline-block;padding:.4rem 1rem;margin:.25rem;border:1px solid var(--border);border-radius:20px;font-size:.8rem;transition:all .2s}
+.cross-links a:hover{border-color:var(--accent);background:rgba(88,166,255,.1);text-decoration:none}
+
+/* Footer */
+.site-footer{border-top:1px solid var(--border);padding:2rem;text-align:center;color:var(--text2);font-size:.8rem;margin-top:2rem}
+
+/* Toast */
+.toast{position:fixed;bottom:2rem;right:2rem;background:var(--surface);border:1px solid var(--green);color:var(--green);padding:.6rem 1.25rem;border-radius:8px;font-size:.85rem;opacity:0;transform:translateY(10px);transition:all .3s;z-index:999;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>🧩 <span>Web Components</span> Playground</h1>
+  <div class="header-links">
+    <a href="#features">Features</a>
+    <a href="#faq">FAQ</a>
+    <a href="https://developer.mozilla.org/en-US/docs/Web/Web_Components" target="_blank" rel="noopener">MDN Docs ↗</a>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Section Tabs -->
+  <div class="section-tabs">
+    <button class="section-tab active" data-section="custom-element">Custom Element</button>
+    <button class="section-tab" data-section="shadow-dom">Shadow DOM</button>
+    <button class="section-tab" data-section="templates-slots">Templates &amp; Slots</button>
+    <button class="section-tab" data-section="html-imports">HTML Imports</button>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <select id="presets" aria-label="Select preset example">
+      <option value="">— Choose a preset example —</option>
+      <option value="hello-world">Hello World Element</option>
+      <option value="timer">Timer Element</option>
+      <option value="toggle-button">Toggle Button</option>
+      <option value="tab-container">Tab Container</option>
+      <option value="modal-dialog">Modal Dialog</option>
+      <option value="tooltip">Tooltip</option>
+      <option value="accordion">Accordion</option>
+      <option value="star-rating">Star Rating</option>
+      <option value="color-picker">Color Picker</option>
+      <option value="input-validation">Input Validation</option>
+    </select>
+    <button class="primary" id="runBtn">▶ Run</button>
+    <button id="copyBtn">📋 Copy Code</button>
+    <button id="resetBtn">↺ Reset</button>
+  </div>
+
+  <!-- Playground -->
+  <div class="playground">
+    <div class="panel">
+      <div class="panel-header">
+        <div><span class="dot green"></span><span class="dot yellow"></span><span class="dot red"></span> Code Editor</div>
+        <span id="charCount">0 chars</span>
+      </div>
+      <div class="editor-wrap">
+        <div class="line-numbers" id="lineNumbers">1</div>
+        <textarea id="editor" spellcheck="false" aria-label="Code editor"></textarea>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div><span class="dot green"></span><span class="dot yellow"></span><span class="dot red"></span> Live Preview</div>
+        <span id="previewStatus">Ready</span>
+      </div>
+      <iframe id="preview" sandbox="allow-scripts" title="Live component preview"></iframe>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <h2>Why <span>Web Components</span>?</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="icon">🏗️</div>
+        <h3>Custom Elements</h3>
+        <p>Create reusable HTML tags with encapsulated behavior using ES6 classes that extend HTMLElement. Register them with <code>customElements.define()</code> and use them like native elements.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔒</div>
+        <h3>Shadow DOM</h3>
+        <p>Encapsulate your component's markup and styles so they don't leak out or get affected by the outside page. True isolation with <code>attachShadow()</code>.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">📋</div>
+        <h3>Templates &amp; Slots</h3>
+        <p>Define inert DOM fragments with <code>&lt;template&gt;</code> and compose content with <code>&lt;slot&gt;</code>. Build flexible, declarative component APIs.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔗</div>
+        <h3>Framework Agnostic</h3>
+        <p>Web Components work with React, Vue, Angular, Svelte, or vanilla JS. They're a browser standard — write once, use everywhere, no dependencies needed.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq" id="faq">
+    <h2>Frequently Asked <span>Questions</span></h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+          What are Web Components?
+          <span class="arrow">▼</span>
+        </div>
+        <div class="faq-a"><p>Web Components are a set of browser-native APIs that let you create reusable, encapsulated HTML elements. They consist of Custom Elements (define new tags), Shadow DOM (style &amp; markup encapsulation), and Templates &amp; Slots (inert DOM &amp; content projection). They work across all modern browsers without any framework.</p></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+          How do I register a Custom Element?
+          <span class="arrow">▼</span>
+        </div>
+        <div class="faq-a"><p>Create a class that extends <code>HTMLElement</code> (or a specific element like <code>HTMLButtonElement</code>), then call <code>customElements.define('my-element', MyElement)</code>. The tag name must contain a hyphen. Use lifecycle callbacks like <code>connectedCallback()</code>, <code>disconnectedCallback()</code>, and <code>attributeChangedCallback()</code> to react to changes.</p></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+          Can I use Web Components with my framework?
+          <span class="arrow">▼</span>
+        </div>
+        <div class="faq-a"><p>Yes. Web Components are browser standards and integrate with React, Vue, Angular, Svelte, and others. React has full support via custom element refs. Vue and Angular handle them natively. They're ideal for design systems and shared component libraries that need to work across different technology stacks.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Email Widget -->
+  <section class="email-widget">
+    <div class="email-box">
+      <h3>📬 Get Component Updates</h3>
+      <p>Receive new Web Component examples and tips delivered to your inbox.</p>
+      <form class="email-form" onsubmit="return handleEmail(event)">
+        <input type="email" placeholder="you@example.com" required aria-label="Email address">
+        <button type="submit">Subscribe</button>
+      </form>
+      <div class="email-msg" id="emailMsg">✓ You're subscribed! Check your inbox.</div>
+    </div>
+  </section>
+
+  <!-- Cross Links -->
+  <section class="cross-links">
+    <h3>Explore More</h3>
+    <a href="https://developer.mozilla.org/en-US/docs/Web/Web_Components" target="_blank" rel="noopener">MDN Web Components</a>
+    <a href="https://web.dev/custom-elements-v1/" target="_blank" rel="noopener">web.dev Custom Elements</a>
+    <a href="https://open-wc.org/" target="_blank" rel="noopener">Open Web Components</a>
+    <a href="https://lit.dev/" target="_blank" rel="noopener">Lit Library</a>
+    <a href="https://developers.google.com/web/fundamentals/web-components" target="_blank" rel="noopener">Google Web Components Guide</a>
+    <a href="https://custom-elements-everywhere.com/" target="_blank" rel="noopener">Custom Elements Everywhere</a>
+    <a href="https://github.com/nicolo-ribaudo/tc39-proposal-html-imports" target="_blank" rel="noopener">HTML Modules Proposal</a>
+    <a href="https://css-tricks.com/an-introduction-to-web-components/" target="_blank" rel="noopener">CSS-Tricks Intro</a>
+  </section>
+</div>
+
+<footer class="site-footer">
+  <p>Web Components Playground — Built with vanilla HTML, CSS &amp; JavaScript. No frameworks. No dependencies.</p>
+  <p style="margin-top:.5rem"><a href="/sitemap.xml">Sitemap</a> · <a href="/robots.txt">Robots</a></p>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Preset Examples ──
+const PRESETS = {
+  'hello-world': `class HelloWorld extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+  connectedCallback() {
+    this.shadowRoot.innerHTML = \`
+      <style>
+        :host { display: block; padding: 2rem; text-align: center; }
+        h2 { color: #58a6ff; font-family: system-ui; margin: 0; }
+        p { color: #8b949e; margin-top: .5rem; }
+      </style>
+      <h2>👋 Hello, World!</h2>
+      <p>I'm a Custom Element called &lt;hello-world&gt;</p>
+    \`;
+  }
+}
+customElements.define('hello-world', HelloWorld);
+
+document.body.innerHTML = '<hello-world></hello-world>';`,
+
+  'timer': `class TimerElement extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this.seconds = 0;
+  }
+  connectedCallback() {
+    this.shadowRoot.innerHTML = \`
+      <style>
+        :host { display: block; text-align: center; padding: 2rem; font-family: system-ui; }
+        .time { font-size: 3rem; font-weight: 700; color: #58a6ff; font-variant-numeric: tabular-nums; }
+        .controls { margin-top: 1rem; display: flex; gap: .5rem; justify-content: center; }
+        button { padding: .5rem 1.25rem; border: 1px solid #30363d; border-radius: 6px;
+                 background: #161b22; color: #e6edf3; cursor: pointer; font-size: .9rem; }
+        button:hover { border-color: #58a6ff; }
+      </style>
+      <div class="time" id="display">00:00</div>
+      <div class="controls">
+        <button id="startBtn">▶ Start</button>
+        <button id="stopBtn">⏸ Stop</button>
+        <button id="resetBtn">↺ Reset</button>
+      </div>
+    \`;
+    this.display = this.shadowRoot.getElementById('display');
+    this.shadowRoot.getElementById('startBtn').onclick = () => this.start();
+    this.shadowRoot.getElementById('stopBtn').onclick = () => this.stop();
+    this.shadowRoot.getElementById('resetBtn').onclick = () => this.reset();
+  }
+  start() {
+    if (this.interval) return;
+    this.interval = setInterval(() => {
+      this.seconds++;
+      const m = String(Math.floor(this.seconds / 60)).padStart(2, '0');
+      const s = String(this.seconds % 60).padStart(2, '0');
+      this.display.textContent = m + ':' + s;
+    }, 1000);
+  }
+  stop() { clearInterval(this.interval); this.interval = null; }
+  reset() { this.stop(); this.seconds = 0; this.display.textContent = '00:00'; }
+  disconnectedCallback() { this.stop(); }
+}
+customElements.define('timer-element', TimerElement);
+
+document.body.innerHTML = '<timer-element></timer-element>';`,
+
+  'toggle-button': `class ToggleButton extends HTMLElement {
+  static get observedAttributes() { return ['on']; }
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+  connectedCallback() {
+    this.shadowRoot.innerHTML = \`
+      <style>
+        :host { display: inline-block; }
+        button { padding: .75rem 2rem; border: 2px solid #30363d; border-radius: 8px;
+                 font-size: 1rem; cursor: pointer; font-weight: 600;
+                 transition: all .3s; font-family: system-ui; }
+        .off { background: #161b22; color: #8b949e; }
+        .on { background: #238636; color: #fff; border-color: #238636; }
+      </style>
+      <button class="off">OFF</button>
+    \`;
+    this.btn = this.shadowRoot.querySelector('button');
+    this.btn.onclick = () => {
+      const isOn = this.getAttribute('on') === 'true';
+      this.setAttribute('on', isOn ? 'false' : 'true');
+    };
+  }
+  attributeChangedCallback() {
+    if (!this.btn) return;
+    const isOn = this.getAttribute('on') === 'true';
+    this.btn.textContent = isOn ? 'ON' : 'OFF';
+    this.btn.className = isOn ? 'on' : 'off';
+  }
+}
+customElements.define('toggle-button', ToggleButton);
+
+document.body.style.cssText = 'display:flex;justify-content:center;align-items:center;height:100vh;background:#0d1117;';
+document.body.innerHTML = '<toggle-button></toggle-button>';`,
+
+  'tab-container': `class TabContainer extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+  connectedCallback() {
+    const tabs = ['Overview', 'API', 'Examples'];
+    const contents = [
+      'Web Components let you create custom, reusable HTML elements.',
+      'Use customElements.define() with a class extending HTMLElement.',
+      'Combine Shadow DOM + Templates for powerful encapsulation.'
+    ];
+    this.shadowRoot.innerHTML = \`
+      <style>
+        :host { display: block; font-family: system-ui; background: #0d1117; color: #e6edf3; padding: 1rem; }
+        .tabs { display: flex; gap: 2px; border-bottom: 1px solid #30363d; }
+        .tab { padding: .6rem 1.25rem; cursor: pointer; color: #8b949e; border-bottom: 2px solid transparent;
+               transition: all .2s; font-size: .9rem; }
+        .tab:hover { color: #e6edf3; }
+        .tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+        .panel { padding: 1.25rem; color: #8b949e; line-height: 1.7; }
+      </style>
+      <div class="tabs" id="tabs"></div>
+      <div class="panel" id="panel"></div>
+    \`;
+    const tabBar = this.shadowRoot.getElementById('tabs');
+    const panel = this.shadowRoot.getElementById('panel');
+    tabs.forEach((t, i) => {
+      const el = document.createElement('div');
+      el.className = 'tab' + (i === 0 ? ' active' : '');
+      el.textContent = t;
+      el.onclick = () => {
+        tabBar.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        el.classList.add('active');
+        panel.textContent = contents[i];
+      };
+      tabBar.appendChild(el);
+    });
+    panel.textContent = contents[0];
+  }
+}
+customElements.define('tab-container', TabContainer);
+
+document.body.innerHTML = '<tab-container></tab-container>';`,
+
+  'modal-dialog': `class ModalDialog extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+  connectedCallback() {
+    this.shadowRoot.innerHTML = \`
+      <style>
+        :host { display: block; font-family: system-ui; }
+        button.trigger { padding: .6rem 1.5rem; background: #58a6ff; color: #0d1117;
+          border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: 600; }
+        button.trigger:hover { opacity: .9; }
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none;
+                   align-items: center; justify-content: center; z-index: 100; }
+        .overlay.open { display: flex; }
+        .modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px;
+                 padding: 2rem; max-width: 400px; width: 90%; color: #e6edf3; }
+        .modal h3 { margin: 0 0 .5rem; }
+        .modal p { color: #8b949e; margin: 0 0 1.25rem; font-size: .9rem; }
+        .modal button { padding: .5rem 1.25rem; background: #238636; color: #fff;
+                        border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+      </style>
+      <button class="trigger">Open Modal</button>
+      <div class="overlay" id="overlay">
+        <div class="modal">
+          <h3>Modal Dialog</h3>
+          <p>This is a Shadow DOM encapsulated modal. Click outside or the button to close.</p>
+          <button id="closeBtn">Close</button>
+        </div>
+      </div>
+    \`;
+    const overlay = this.shadowRoot.getElementById('overlay');
+    this.shadowRoot.querySelector('.trigger').onclick = () => overlay.classList.add('open');
+    this.shadowRoot.getElementById('closeBtn').onclick = () => overlay.classList.remove('open');
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.remove('open'); };
+  }
+}
+customElements.define('modal-dialog', ModalDialog);
+
+document.body.style.cssText = 'padding:2rem;background:#0d1117;';
+document.body.innerHTML = '<modal-dialog></modal-dialog>';`,
+
+  'tooltip': `class TooltipWrap extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+  connectedCallback() {
+    const text = this.getAttribute('text') || 'Tooltip text';
+    this.shadowRoot.innerHTML = \`
+      <style>
+        :host { display: inline-block; position: relative; cursor: pointer; }
+        span { color: #58a6ff; text-decoration: underline dotted; font-family: system-ui; }
+        .tip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+               background: #161b22; color: #e6edf3; border: 1px solid #30363d; padding: .4rem .75rem;
+               border-radius: 6px; font-size: .8rem; white-space: nowrap; opacity: 0;
+               pointer-events: none; transition: opacity .2s; font-family: system-ui; }
+        :host(:hover) .tip { opacity: 1; }
+      </style>
+      <span><slot></slot></span>
+      <div class="tip">\${text}</div>
+    \`;
+  }
+}
+customElements.define('tooltip-wrap', TooltipWrap);
+
+document.body.style.cssText = 'display:flex;justify-content:center;align-items:center;height:100vh;background:#0d1117;font-family:system-ui;gap:1.5rem;';
+document.body.innerHTML = \`
+  <tooltip-wrap text="Fully encapsulated styles">Shadow DOM</tooltip-wrap>
+  <tooltip-wrap text="Define new HTML tags">Custom Elements</tooltip-wrap>
+  <tooltip-wrap text="Inert reusable markup">Templates</tooltip-wrap>
+\`;`,
+
+  'accordion': `class AccordionItem extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+  connectedCallback() {
+    const title = this.getAttribute('title') || 'Section';
+    this.shadowRoot.innerHTML = \`
+      <style>
+        :host { display: block; font-family: system-ui; border: 1px solid #30363d;
+                border-radius: 8px; overflow: hidden; margin-bottom: .5rem; }
+        .header { padding: .75rem 1rem; cursor: pointer; display: flex;
+                  justify-content: space-between; align-items: center; background: #161b22;
+                  color: #e6edf3; font-weight: 600; font-size: .9rem; }
+        .header:hover { background: #1c2129; }
+        .arrow { transition: transform .3s; color: #8b949e; }
+        .body { max-height: 0; overflow: hidden; transition: max-height .3s ease;
+                background: #0d1117; color: #8b949e; font-size: .875rem; line-height: 1.7; }
+        .open .body { max-height: 200px; }
+        .open .arrow { transform: rotate(180deg); }
+        .body-content { padding: .75rem 1rem; }
+      </style>
+      <div id="wrap">
+        <div class="header"><span>\${title}</span><span class="arrow">▼</span></div>
+        <div class="body"><div class="body-content"><slot></slot></div></div>
+      </div>
+    \`;
+    const wrap = this.shadowRoot.getElementById('wrap');
+    this.shadowRoot.querySelector('.header').onclick = () => wrap.classList.toggle('open');
+  }
+}
+customElements.define('accordion-item', AccordionItem);
+
+document.body.style.cssText = 'padding:2rem;background:#0d1117;';
+document.body.innerHTML = \`
+  <accordion-item title="What are Custom Elements?">
+    Custom Elements let you register new HTML tags. Create a class extending HTMLElement and register it with customElements.define().
+  </accordion-item>
+  <accordion-item title="What is Shadow DOM?">
+    Shadow DOM provides style and markup encapsulation. Styles inside won't leak out, and outside styles won't bleed in.
+  </accordion-item>
+  <accordion-item title="Why use Templates?">
+    Template elements are inert — not rendered until cloned. Combined with slots, they enable content projection patterns.
+  </accordion-item>
+\`;`,
+
+  'star-rating': `class StarRating extends HTMLElement {
+  static get observedAttributes() { return ['value']; }
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+  connectedCallback() {
+    this.shadowRoot.innerHTML = \`
+      <style>
+        :host { display: block; text-align: center; padding: 2rem; font-family: system-ui; }
+        .stars { font-size: 2.5rem; cursor: pointer; user-select: none; }
+        .star { color: #30363d; transition: color .15s; }
+        .star.filled { color: #d29922; }
+        .star:hover { filter: brightness(1.2); }
+        .label { margin-top: .75rem; color: #8b949e; font-size: .9rem; }
+      </style>
+      <div class="stars" id="stars"></div>
+      <div class="label" id="label">Click a star to rate</div>
+    \`;
+    this.starsEl = this.shadowRoot.getElementById('stars');
+    this.label = this.shadowRoot.getElementById('label');
+    const labels = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'];
+    for (let i = 1; i <= 5; i++) {
+      const s = document.createElement('span');
+      s.className = 'star';
+      s.textContent = '★';
+      s.dataset.val = i;
+      s.onclick = () => { this.setAttribute('value', i); };
+      this.starsEl.appendChild(s);
+    }
+  }
+  attributeChangedCallback() {
+    const v = parseInt(this.getAttribute('value')) || 0;
+    const labels = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'];
+    this.starsEl.querySelectorAll('.star').forEach(s => {
+      s.classList.toggle('filled', parseInt(s.dataset.val) <= v);
+    });
+    this.label.textContent = v ? v + '/5 — ' + labels[v] : 'Click a star to rate';
+  }
+}
+customElements.define('star-rating', StarRating);
+
+document.body.style.cssText = 'background:#0d1117;';
+document.body.innerHTML = '<star-rating></star-rating>';`,
+
+  'color-picker': `class ColorPicker extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this.hue = 210;
+  }
+  connectedCallback() {
+    this.shadowRoot.innerHTML = \`
+      <style>
+        :host { display: block; text-align: center; padding: 2rem; font-family: system-ui; }
+        .swatch { width: 120px; height: 120px; border-radius: 12px; margin: 0 auto 1rem;
+                  border: 2px solid #30363d; transition: background .1s; }
+        input[type=range] { width: 260px; accent-color: #58a6ff; }
+        .info { color: #8b949e; margin-top: .75rem; font-size: .9rem; }
+        .hex { font-family: monospace; color: #58a6ff; font-size: 1.25rem; font-weight: 700; }
+      </style>
+      <div class="swatch" id="swatch"></div>
+      <div class="hex" id="hex">#4488ff</div>
+      <div style="margin-top:1rem">
+        <label style="color:#8b949e;font-size:.8rem">Hue: <span id="hueVal">210</span>°</label><br>
+        <input type="range" min="0" max="360" value="210" id="hueSlider">
+      </div>
+      <div style="margin-top:.5rem">
+        <label style="color:#8b949e;font-size:.8rem">Saturation: <span id="satVal">80</span>%</label><br>
+        <input type="range" min="0" max="100" value="80" id="satSlider">
+      </div>
+      <div style="margin-top:.5rem">
+        <label style="color:#8b949e;font-size:.8rem">Lightness: <span id="litVal">63</span>%</label><br>
+        <input type="range" min="0" max="100" value="63" id="litSlider">
+      </div>
+      <div class="info">Adjust the sliders to pick a color</div>
+    \`;
+    this.swatch = this.shadowRoot.getElementById('swatch');
+    this.hexEl = this.shadowRoot.getElementById('hex');
+    const h = this.shadowRoot.getElementById('hueSlider');
+    const s = this.shadowRoot.getElementById('satSlider');
+    const l = this.shadowRoot.getElementById('litSlider');
+    const hV = this.shadowRoot.getElementById('hueVal');
+    const sV = this.shadowRoot.getElementById('satVal');
+    const lV = this.shadowRoot.getElementById('litVal');
+    const update = () => {
+      const col = 'hsl(' + h.value + ',' + s.value + '%,' + l.value + '%)';
+      this.swatch.style.background = col;
+      hV.textContent = h.value; sV.textContent = s.value; lV.textContent = l.value;
+      this.hexEl.textContent = this.hslToHex(+h.value, +s.value, +l.value);
+    };
+    h.oninput = update; s.oninput = update; l.oninput = update;
+    update();
+  }
+  hslToHex(h, s, l) {
+    s /= 100; l /= 100;
+    const a = s * Math.min(l, 1 - l);
+    const f = n => { const k = (n + h / 30) % 12; return l - a * Math.max(Math.min(k-3, 9-k, 1), -1); };
+    const toHex = x => Math.round(x * 255).toString(16).padStart(2, '0');
+    return '#' + toHex(f(0)) + toHex(f(8)) + toHex(f(4));
+  }
+}
+customElements.define('color-picker', ColorPicker);
+
+document.body.style.cssText = 'background:#0d1117;';
+document.body.innerHTML = '<color-picker></color-picker>';`,
+
+  'input-validation': `class ValidatedInput extends HTMLElement {
+  static get observedAttributes() { return ['pattern']; }
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+  connectedCallback() {
+    const label = this.getAttribute('label') || 'Input';
+    const type = this.getAttribute('type') || 'text';
+    const hint = this.getAttribute('hint') || '';
+    this.shadowRoot.innerHTML = \`
+      <style>
+        :host { display: block; font-family: system-ui; max-width: 360px; margin: 1.5rem auto; }
+        label { display: block; color: #8b949e; font-size: .8rem; margin-bottom: .35rem; font-weight: 600; }
+        .wrap { position: relative; }
+        input { width: 100%; padding: .65rem .75rem; padding-right: 2.5rem; border: 2px solid #30363d;
+                border-radius: 8px; background: #0d1117; color: #e6edf3; font-size: .9rem;
+                outline: none; transition: border-color .2s; }
+        input:focus { border-color: #58a6ff; }
+        input.valid { border-color: #3fb950; }
+        input.invalid { border-color: #f85149; }
+        .icon { position: absolute; right: .75rem; top: 50%; transform: translateY(-50%);
+                font-size: 1.1rem; opacity: 0; transition: opacity .2s; }
+        .icon.show { opacity: 1; }
+        .hint { font-size: .75rem; margin-top: .35rem; color: #8b949e; min-height: 1rem; }
+        .hint.error { color: #f85149; }
+      </style>
+      <label>\${label}</label>
+      <div class="wrap">
+        <input type="\${type}" id="input" placeholder="\${hint}">
+        <span class="icon" id="icon"></span>
+      </div>
+      <div class="hint" id="hint"></div>
+    \`;
+    const input = this.shadowRoot.getElementById('input');
+    const icon = this.shadowRoot.getElementById('icon');
+    const hintEl = this.shadowRoot.getElementById('hint');
+    input.addEventListener('input', () => {
+      const val = input.value;
+      if (!val) { input.className = ''; icon.className = 'icon'; hintEl.className = 'hint'; hintEl.textContent = ''; return; }
+      const emailOk = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(val);
+      if (type === 'email') {
+        input.className = emailOk ? 'valid' : 'invalid';
+        icon.textContent = emailOk ? '✓' : '✗';
+        icon.className = 'icon show';
+        hintEl.textContent = emailOk ? '' : 'Please enter a valid email address';
+        hintEl.className = emailOk ? 'hint' : 'hint error';
+      } else {
+        const len = val.length >= 3;
+        input.className = len ? 'valid' : 'invalid';
+        icon.textContent = len ? '✓' : '✗';
+        icon.className = 'icon show';
+        hintEl.textContent = len ? '' : 'Minimum 3 characters';
+        hintEl.className = len ? 'hint' : 'hint error';
+      }
+    });
+  }
+}
+customElements.define('validated-input', ValidatedInput);
+
+document.body.style.cssText = 'padding:2rem;background:#0d1117;';
+document.body.innerHTML = \`
+  <validated-input label="Email Address" type="email" hint="you@example.com"></validated-input>
+  <validated-input label="Username" type="text" hint="Pick a username"></validated-input>
+\`;`
+};
+
+// ── Section Templates ──
+const SECTIONS = {
+  'custom-element': `// Custom Element — class extends HTMLElement
+// Define a new HTML tag with lifecycle callbacks
+
+class MyElement extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+
+  connectedCallback() {
+    this.shadowRoot.innerHTML = \`
+      <style>
+        :host { display: block; padding: 2rem; font-family: system-ui; }
+        h2 { color: #58a6ff; }
+        p { color: #8b949e; }
+      </style>
+      <h2>My Custom Element</h2>
+      <p>Edit this code and press ▶ Run to see changes!</p>
+    \`;
+  }
+
+  disconnectedCallback() {
+    console.log('Element removed from DOM');
+  }
+
+  attributeChangedCallback(name, oldVal, newVal) {
+    console.log(name, 'changed from', oldVal, 'to', newVal);
+  }
+}
+
+customElements.define('my-element', MyElement);
+document.body.innerHTML = '<my-element></my-element>';`,
+
+  'shadow-dom': `// Shadow DOM — style & DOM encapsulation
+
+class ShadowBox extends HTMLElement {
+  constructor() {
+    super();
+    // Create an open shadow root
+    this.attachShadow({ mode: 'open' });
+  }
+
+  connectedCallback() {
+    const color = this.getAttribute('color') || '#58a6ff';
+
+    this.shadowRoot.innerHTML = \`
+      <style>
+        :host { display: block; padding: 2rem; }
+        .box {
+          background: \${color}22;
+          border: 2px solid \${color};
+          border-radius: 12px;
+          padding: 1.5rem;
+          font-family: system-ui;
+          color: #e6edf3;
+        }
+        .box h3 { margin: 0 0 .5rem; color: \${color}; }
+        .box p { margin: 0; color: #8b949e; font-size: .9rem; }
+        /* Outside styles can't reach inside! */
+      </style>
+      <div class="box">
+        <h3>🔒 Shadow DOM</h3>
+        <p>Styles here are encapsulated. The outside page cannot affect this box.</p>
+      </div>
+    \`;
+  }
+}
+
+customElements.define('shadow-box', ShadowBox);
+document.body.style.cssText = 'background:#0d1117;padding:2rem;';
+document.body.innerHTML = \`
+  <shadow-box color="#58a6ff"></shadow-box>
+  <shadow-box color="#3fb950" style="margin-top:1rem"></shadow-box>
+\`;`,
+
+  'templates-slots': `// Templates & Slots — inert DOM + content projection
+
+class CardElement extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+
+  connectedCallback() {
+    this.shadowRoot.innerHTML = \`
+      <style>
+        :host { display: block; font-family: system-ui; }
+        .card {
+          background: #161b22;
+          border: 1px solid #30363d;
+          border-radius: 12px;
+          overflow: hidden;
+          max-width: 320px;
+          margin: 2rem auto;
+        }
+        .card-header {
+          padding: 1rem;
+          border-bottom: 1px solid #30363d;
+          font-weight: 700;
+          color: #58a6ff;
+          font-size: 1.1rem;
+        }
+        .card-body { padding: 1rem; color: #8b949e; font-size: .9rem; line-height: 1.7; }
+        .card-footer {
+          padding: .75rem 1rem;
+          border-top: 1px solid #30363d;
+          text-align: right;
+        }
+        .card-footer ::slotted(*) { color: #58a6ff; cursor: pointer; }
+      </style>
+      <div class="card">
+        <div class="card-header"><slot name="title">Default Title</slot></div>
+        <div class="card-body"><slot>Default body content</slot></div>
+        <div class="card-footer"><slot name="actions"></slot></div>
+      </div>
+    \`;
+  }
+}
+
+customElements.define('card-element', CardElement);
+
+document.body.style.cssText = 'background:#0d1117;';
+document.body.innerHTML = \`
+  <card-element>
+    <span slot="title">📋 Templates & Slots</span>
+    <p>Slots let you project light DOM content into the shadow DOM.</p>
+    <button slot="actions">Learn More</button>
+  </card-element>
+\`;`,
+
+  'html-imports': `// HTML Modules / ES Module Imports
+// Modern Web Components use ES modules instead of HTML Imports
+// (HTML Imports were deprecated; ES Modules are the standard)
+
+// ─── Imagine this is a separate file: my-button.js ───
+class MyButton extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+  connectedCallback() {
+    const label = this.getAttribute('label') || 'Click Me';
+    const variant = this.getAttribute('variant') || 'primary';
+    const colors = {
+      primary: { bg: '#58a6ff', text: '#0d1117' },
+      success: { bg: '#238636', text: '#fff' },
+      danger:  { bg: '#da3633', text: '#fff' },
+    };
+    const c = colors[variant] || colors.primary;
+    this.shadowRoot.innerHTML = \`
+      <style>
+        button { padding: .6rem 1.5rem; border: none; border-radius: 6px;
+                 font-size: .9rem; font-weight: 600; cursor: pointer;
+                 background: \${c.bg}; color: \${c.text};
+                 transition: opacity .2s; font-family: system-ui; }
+        button:hover { opacity: .85; }
+      </style>
+      <button>\${label}</button>
+    \`;
+  }
+}
+customElements.define('my-button', MyButton);
+
+// Usage — like importing from another file:
+// import './my-button.js';
+document.body.style.cssText = 'display:flex;gap:1rem;justify-content:center;align-items:center;height:100vh;background:#0d1117;';
+document.body.innerHTML = \`
+  <my-button label="Primary" variant="primary"></my-button>
+  <my-button label="Success" variant="success"></my-button>
+  <my-button label="Danger" variant="danger"></my-button>
+\`;`
+};
+
+// ── DOM References ──
+const editor = document.getElementById('editor');
+const preview = document.getElementById('preview');
+const presets = document.getElementById('presets');
+const lineNumbers = document.getElementById('lineNumbers');
+const charCount = document.getElementById('charCount');
+const previewStatus = document.getElementById('previewStatus');
+const toast = document.getElementById('toast');
+
+// ── Editor ──
+let currentSection = 'custom-element';
+
+function updateLineNumbers() {
+  const lines = editor.value.split('\n').length;
+  lineNumbers.innerHTML = Array.from({ length: lines }, (_, i) => i + 1).join('<br>');
+  charCount.textContent = editor.value.length + ' chars';
+}
+
+function runCode() {
+  const code = editor.value;
+  if (!code.trim()) return;
+  previewStatus.textContent = 'Running…';
+  const doc = `<!DOCTYPE html><html><head><style>body{margin:0;font-family:system-ui;}</style></head><body><script>${code.replace(/<\/script>/g, '<\\/script>')}</script></body></html>`;
+  preview.srcdoc = doc;
+  setTimeout(() => { previewStatus.textContent = 'Preview updated'; }, 200);
+}
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(editor.value).then(() => showToast('✓ Code copied to clipboard'));
+}
+
+function loadSection(section) {
+  currentSection = section;
+  if (SECTIONS[section]) {
+    editor.value = SECTIONS[section];
+    presets.value = '';
+    updateLineNumbers();
+    runCode();
+  }
+  document.querySelectorAll('.section-tab').forEach(t => t.classList.toggle('active', t.dataset.section === section));
+}
+
+// ── Events ──
+editor.addEventListener('input', updateLineNumbers);
+editor.addEventListener('keydown', e => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const s = editor.selectionStart, end = editor.selectionEnd;
+    editor.value = editor.value.substring(0, s) + '  ' + editor.value.substring(end);
+    editor.selectionStart = editor.selectionEnd = s + 2;
+    updateLineNumbers();
+  }
+});
+
+document.getElementById('runBtn').onclick = runCode;
+document.getElementById('copyBtn').onclick = copyCode;
+document.getElementById('resetBtn').onclick = () => { loadSection(currentSection); };
+
+presets.onchange = () => {
+  const key = presets.value;
+  if (key && PRESETS[key]) {
+    editor.value = PRESETS[key];
+    updateLineNumbers();
+    runCode();
+  }
+};
+
+document.querySelectorAll('.section-tab').forEach(tab => {
+  tab.onclick = () => loadSection(tab.dataset.section);
+});
+
+function handleEmail(e) {
+  e.preventDefault();
+  document.getElementById('emailMsg').style.display = 'block';
+  e.target.querySelector('input').value = '';
+  return false;
+}
+
+// ── Init ──
+loadSection('custom-element');
+
+// Sync scroll
+editor.addEventListener('scroll', () => { lineNumbers.scrollTop = editor.scrollTop; });
+</script>
+</body>
+</html>
